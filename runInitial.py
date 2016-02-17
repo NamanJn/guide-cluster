@@ -6,11 +6,11 @@ import re
 import os
 
 def createDimerCount(sequence):
-
     """
     This is to convert the sequence to 16 features of dimer counts.
-    :return: finalCount (NumPy array) - Returns the count of the 16 dimers.
 
+    :param sequence (string) - oligonucleotide sequence.
+    :return: finalCount (NumPy array) - Returns the count of the 16 dimers.
     """
 
     nucleotides = "ATGC"
@@ -42,6 +42,7 @@ class CreateFiles(object):
             openfile.write(i + "\n")
 
         openfile.close()
+
 
     def getHairpinCount(self, oligonucleotide):
         """
@@ -76,6 +77,7 @@ class CreateFiles(object):
 
         return count
 
+
     def makeHairpinCountFile(self):
         """
         Creates the file containing hairpin counts for each oligonucleotide
@@ -95,11 +97,13 @@ class CreateFiles(object):
     def createDimerCountsFile(self):
         """
         This is to convert the sequence to 16 features of dimer counts.
-        :return: Returns the count of the dimers (list).
 
+        :return: Returns the count of the dimers in lexicographical order (list).
         """
         sequences = self.data[:, 2]
         finalCount = np.array([createDimerCount(i) for i in sequences])
+
+        # Saving the file as a binary.
         np.save(readData.dimerCountsFileName, finalCount)
         return finalCount
 
@@ -120,4 +124,5 @@ if __name__ == "__main__":
     print 'creating dimer counts file'
     dimerCounts = createFiles.createDimerCountsFile()
 
+    # Creating the checkfile.
     os.system("touch %s" % readData.runInitialFileName)

@@ -10,22 +10,26 @@ from sklearn.cluster import KMeans
 from sklearn import preprocessing
 from scipy.stats.stats import pearsonr
 
+# File Names.
 fileName = "example_guide_data.tsv"
 hairpinFileName = 'hairpinCounts.txt'
 biomartResultsFileName = "biomartResults.txt"
+runInitialFileName = "runinitial.txt"
+dimerCountsFileName = "dimerCounts.npy"
+
 dataDir = "data"
 datafilePath = join(dataDir, fileName)
-dimerCountsFileName = "dimerCounts"
+
 nucleotideWeights = { "A": 347.2, "C": 323.2, "G": 363.2, "T": 324.2 }
-runInitialFileName = "runinitial.txt"
+
 
 
 def readData(datafilePath):
     """
     Reading the data.
 
-    :param datafilePath - The relative path to the data file.
-    :return: NumPy array containing the contents of the file.
+    :param datafilePath (string) - The relative path to the data file.
+    :return: d (NumPy array) - Contents of the file.
     """
     # reading the data
     data = pd.read_table(datafilePath, sep="\t", header=0)
@@ -50,13 +54,12 @@ def clusterThem(spacers):
     """
     Clustering the spacers using k-means.
 
-    :param spacers (string).
-    :return: KMeans class containing the results.
+    :param spacers (list) - The array of oligonucleotides.
+    :return: groups (dictionary) - The oligonucleotides grouped into clusters.
     """
     cluster = ClusterMotifs(3)
-    print 'clustering now'
-    cluster.clusterMotifs(spacers)
-    return cluster
+    groups = cluster.clusterMotifs(spacers)
+    return groups
 
 
 def visualise(number, bins=20):
@@ -115,9 +118,9 @@ def getEssentialGenes(d):
 def getMeltingTemperature(oligonucleotide):
     """
     Using the Wallace Rule to find the melting temperature of an oligonucleotide.
+
     :param oligonucleotide (string) - The oligonucleotide.
     :returns Melting temperature (int).
-
     """
     gcCount = oligonucleotide.count("G") + oligonucleotide.count("C")
     atCount = len(oligonucleotide) - gcCount
@@ -127,34 +130,30 @@ def getMeltingTemperature(oligonucleotide):
 def getMass(oligonucleotide):
     """
     Returns the mass of the oligonucleotide.
-    :param oligonucleotide (string) - The oligonucleotide.
 
+    :param oligonucleotide (string) - The oligonucleotide.
     """
     return sum([nucleotideWeights[i] for i in oligonucleotide])
 
-def getChromosomeLocation(gene):
-    """
-    Returns the chromosome for the gene name.
-    Using ENSEMBL biomart.
-    """
-    return 5
 
 def readBioMartResults():
     """
     Reads the gene locations results from BioMart.
-    :return: (tuple)
+
+    :return: positionMapper, chromosomeMapper (tuple) -
     """
     a = pd.read_csv( biomartResultsFileName, sep="\t")
-    position_mapper = {}
-    chromosome_mapper = {}
+    positionMapper = {}
+    chromosomeMapper = {}
 
     for i in a.values:
         if len(i[1]) > 4:
             continue
-        position_mapper[ i[0] ] = i[3]
-        chromosome_mapper[ i[0] ] = i[1]
+        positionMapper[ i[0] ] = i[3]
+        chromosomeMapper[ i[0] ] = i[1]
 
-    return position_mapper, chromosome_mapper
+    return positionMapper, chromosomeMapper
+
 
 def readHairpinCounts():
     """
@@ -165,6 +164,7 @@ def readHairpinCounts():
     hairpinCounts = [int(i) for i in openfile.read().strip().split("\n")]
     openfile.close()
     return hairpinCounts
+
 
 def createMatrixForClustering(data):
     """
@@ -179,7 +179,7 @@ def createMatrixForClustering(data):
     4. Hairpin count.
     5. Sequence (as 16 features , 2-mers ).
 
-    :param data (NumPy array) - The data present in example_guide_data.tsv
+    :param data (NumPy array) - The data present in example_guide_data.tsv.
     :return feature matrix (NumPy array) - The feature matrix.
     """
 
@@ -192,12 +192,22 @@ def createMatrixForClustering(data):
 
     results = []
 
+    # Iterating through the rows.
     for index, i in enumerate(data):
         oligonucleotide = i[2]
+
+        # Getting the melting temperature.
         meltingTemperature = getMeltingTemperature(oligonucleotide)
+
+        # Getting the mass of the oligonucleotide.
         mass = getMass(oligonucleotide)
+
+        # Getting the relative position of the gene.
         position = position_mapper.get(i[0], 300000)/float(sizes[ 'chr%s' % chromosome_mapper.get( i[0], 1) ])
+
+        # Getting the hairpin count.
         hairpinCount = int(hairpinCounts[index])
+
         results.append([meltingTemperature, mass, position, hairpinCount]+list(dimerCounts[index]))
 
     return np.array(results)
@@ -205,10 +215,10 @@ def createMatrixForClustering(data):
 
 def reduceDimensionalityToTwo(matrix):
     """
-    Reduces the dimension via PCA for visualisation.
+    Reduces the dimension via PCA (to 2) for visualisation.
 
     :param matrix (NumPy array) - The feature matrix.
-    :return: Array containing the x and y coordinates (NumPy array)
+    :return: coordinates (NumPy array) - Array containing the x and y coordinates.
     """
     pca = PCA()
     pca.n_components = 2
@@ -217,13 +227,14 @@ def reduceDimensionalityToTwo(matrix):
     return coordinates
 
 
-def createPlot(matrix, ratios, figName):
+def createPlot(matrix, ratios, figName, xlabel, ylabel):
     """
+    Creates a scatter plot.
 
     :param matrix (NumPy Array) - The coordinates.
     :param ratios (NumPy Array) - The guide activity ratios.
     :param figName (string) - The figure name including the file extension type.
-    :return:
+
     """
 
     x = matrix[:, 0]
@@ -234,6 +245,8 @@ def createPlot(matrix, ratios, figName):
     else:
         plt.scatter(x, y, c=list(ratios), alpha=1)
 
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.savefig(figName)
     plt.clf()
 
@@ -241,8 +254,8 @@ def createPlot(matrix, ratios, figName):
 def clusterData(matrix, numOfClusters):
     """
 
-    :param matrix (NumPy array):
-    :param numOfClusters (integer):
+    :param matrix (NumPy array) - The feature-scaled data matrix.
+    :param numOfClusters (int) - The number of clusters
     :return: labels (NumPy array) - The group number for each sample.
     """
     kmeans = KMeans(n_clusters=numOfClusters)
@@ -260,15 +273,19 @@ def getCorrelationHairpin():
     ratios = np.log2(getRatio(d))
     # Getting the hairpinCounts.
     hairpinCounts = np.array(readHairpinCounts()).astype("float64")
+
     # Plotting the scatterplot and regression line.
     sns.regplot(hairpinCounts, ratios)
+
+    sns.plt.xlabel("Hairpin Count")
+    sns.plt.ylabel("Guide Activity")
     sns.plt.savefig('hairpinVsGuide.png')
     sns.plt.clf()
 
 
 def getCorrelationMeltingTemperature(d):
     """
-    Plotting the scatter plot and regression line of melting Temperature
+    Plotting the scatter plot and regression line of guide melting temperature
     vs the guide activities.
     """
 
@@ -282,6 +299,8 @@ def getCorrelationMeltingTemperature(d):
     # Plotting the scatterplot and regression line.
     sns.regplot(meltingTemperatures, ratios)
 
+    sns.plt.xlabel("Melting Temperature")
+    sns.plt.ylabel("Guide Activity")
     sns.plt.savefig('TemperaturesVsGuide.png')
     sns.plt.clf()
     return pearsonr(meltingTemperatures, ratios)
@@ -296,7 +315,7 @@ def getCorrelationGenomeLocation():
     ratios = np.log2(getRatio(d))
 
     # Getting the hairpinCounts.
-    position_mapper, chromosome_mapper = readBioMartResults()
+    positionMapper, chromosomeMapper = readBioMartResults()
 
     sizes = readChromosomeLengthFile()
     data = readData(datafilePath)
@@ -305,8 +324,8 @@ def getCorrelationGenomeLocation():
 
     for index, i in enumerate(data):
 
-        chromosome_length = sizes[ 'chr%s' % chromosome_mapper.get( i[0], 1) ]
-        position =  position_mapper.get(i[0], 300000)/float(chromosome_length)
+        chromosomeLength = sizes[ 'chr%s' % chromosomeMapper.get( i[0], 1) ]
+        position = positionMapper.get(i[0], 300000)/float(chromosomeLength)
 
         if position > 1:
             pass
@@ -317,6 +336,8 @@ def getCorrelationGenomeLocation():
 
     # Plotting the scatterplot and regression line.
     sns.regplot(allPositions, ratios, fit_reg=False)
+    sns.plt.xlabel("Genome location ( position / chromosome length)")
+    sns.plt.ylabel("Guide activity")
     sns.plt.savefig('positionVsGuide.png')
     sns.plt.clf()
 
@@ -325,18 +346,19 @@ def featureScaleMatrix(matrix):
     This function scales the features (between 0 and 1).
     It also reduces the weight of the 16-features generated by
     the guide sequence.
-    :param matrix (NumPy array):
-    :return: normalised matrix (NumPy array)
+
+    :param matrix (NumPy array) - The feature matrix.
+    :return: normalised matrix (NumPy array) - The feature matrix post-normalisation.
     """
 
     # feature scaling
     minmax = preprocessing.MinMaxScaler()
-    normalised_matrix = minmax.fit_transform(matrix)
+    normalisedMatrix = minmax.fit_transform(matrix)
 
     # dividing the normalised values for dimer-features by 16
-    normalised_matrix[:, 4:] = normalised_matrix[:, 4:]/16.0
+    normalisedMatrix[:, 4:] = normalisedMatrix[:, 4:]/16.0
 
-    return normalised_matrix
+    return normalisedMatrix
 
 
 if __name__ == "__main__":
@@ -344,6 +366,7 @@ if __name__ == "__main__":
     if not os.path.exists(runInitialFileName):
         print "\n\nPlease run runInitial.py first"
         sys.exit()
+
     # Reading in the data
     d = readData(datafilePath)
 
@@ -379,7 +402,7 @@ if __name__ == "__main__":
 
     # Plotting the output of PCA.
     figName = "pcaOutput.png"
-    createPlot(coordinates, ratios, figName)
+    createPlot(coordinates, ratios, figName, "pc1", "pc2")
 
     # Clustering the guides.
     numberOfClusters = 4
@@ -396,7 +419,7 @@ if __name__ == "__main__":
         print averageRatio
 
     # Also plotting guide activity distribution for each cluster.
-    createPlot(np.array(coordinates), 0, figName)
+    createPlot(np.array(coordinates), 0, figName, "Cluster Number", "Guide activities")
 
 
 
