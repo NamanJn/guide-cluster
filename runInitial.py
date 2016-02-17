@@ -3,7 +3,7 @@ import pandas as pd
 import DNApy
 import numpy as np
 import re
-
+import os
 
 def createDimerCount(sequence):
 
@@ -56,6 +56,7 @@ class CreateFiles(object):
         :param oligonucleotide (string) - The oligonucleotide.
         :return Number of hairpins (int).
         """
+
         oligoLength = len(oligonucleotide)
         count = 0
         loopLengths = range(4, 8) # Loops with less than 4 bases are not sterically possible.
@@ -119,3 +120,4 @@ if __name__ == "__main__":
     print 'creating dimer counts file'
     dimerCounts = createFiles.createDimerCountsFile()
 
+    os.system("touch %s" % readData.runInitialFileName)

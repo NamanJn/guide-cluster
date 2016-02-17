@@ -1,13 +1,12 @@
 import pandas as pd
 from os.path import join
-import os, re
+import os, re, sys
 import numpy as np
 from DNApy.clustering import ClusterMotifs
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-import pdb
 from sklearn import preprocessing
 from scipy.stats.stats import pearsonr
 
@@ -16,8 +15,9 @@ hairpinFileName = 'hairpinCounts.txt'
 biomartResultsFileName = "biomartResults.txt"
 dataDir = "data"
 datafilePath = join(dataDir, fileName)
-dimerCountsFileName = "dimerCounts.txt.npy"
+dimerCountsFileName = "dimerCounts"
 nucleotideWeights = { "A": 347.2, "C": 323.2, "G": 363.2, "T": 324.2 }
+runInitialFileName = "runinitial.txt"
 
 
 def readData(datafilePath):
@@ -341,6 +341,9 @@ def featureScaleMatrix(matrix):
 
 if __name__ == "__main__":
 
+    if not os.path.exists(runInitialFileName):
+        print "\n\nPlease run runInitial.py first"
+        sys.exit()
     # Reading in the data
     d = readData(datafilePath)
 
