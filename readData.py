@@ -23,7 +23,6 @@ datafilePath = join(dataDir, fileName)
 nucleotideWeights = { "A": 347.2, "C": 323.2, "G": 363.2, "T": 324.2 }
 
 
-
 def readData(datafilePath):
     """
     Reading the data.
@@ -234,7 +233,6 @@ def createPlot(matrix, ratios, figName, xlabel, ylabel):
     :param matrix (NumPy Array) - The coordinates.
     :param ratios (NumPy Array) - The guide activity ratios.
     :param figName (string) - The figure name including the file extension type.
-
     """
 
     x = matrix[:, 0]
@@ -266,9 +264,9 @@ def clusterData(matrix, numOfClusters):
 def plotRegression(x, ratios, xLabel, yLabel, fileName):
     """
     This function is to plot a scatter plot for features vs guide activity.
-    
-    :param x - The feature.
-    :param ratios - The guide activity values.
+
+    :param x (NumPy array) - The feature.
+    :param ratios (NumPy array) - The guide activity values.
     :param xLabel (string) - The x label of the plot.
     :param yLabel (string) - The y label of the plot.
     :param fileName (string) - The file name.
@@ -327,11 +325,14 @@ def getCorrelationGenomeLocation():
     # Getting the hairpinCounts.
     positionMapper, chromosomeMapper = readBioMartResults()
 
+    # Getting the sizes of the chromosomes.
     sizes = readChromosomeLengthFile()
+
     data = readData(datafilePath)
 
     allPositions = []
 
+    # Iterating through the rows.
     for index, i in enumerate(data):
 
         chromosomeLength = sizes[ 'chr%s' % chromosomeMapper.get( i[0], 1) ]
@@ -347,6 +348,7 @@ def getCorrelationGenomeLocation():
     # Plotting the scatterplot and regression line.
     return plotRegression(allPositions, ratios, "Genome location ( position / chromosome length)", "Guide Activity", "positionVsGuide.png" )
 
+
 def featureScaleMatrix(matrix):
     """
     This function scales the features (between 0 and 1).
@@ -357,11 +359,11 @@ def featureScaleMatrix(matrix):
     :return: normalised matrix (NumPy array) - The feature matrix post-normalisation.
     """
 
-    # feature scaling
+    # Feature scaling.
     minmax = preprocessing.MinMaxScaler()
     normalisedMatrix = minmax.fit_transform(matrix)
 
-    # dividing the normalised values for dimer-features by 16
+    # Dividing the normalised values for dimer-features by 16
     normalisedMatrix[:, 4:] = normalisedMatrix[:, 4:]/16.0
 
     return normalisedMatrix
@@ -373,7 +375,7 @@ if __name__ == "__main__":
         print "\n\nPlease run runInitial.py first"
         sys.exit()
 
-    # Reading in the data
+    # Reading in the data.
     d = readData(datafilePath)
 
     # Getting the guide activity ratios.
@@ -388,14 +390,15 @@ if __name__ == "__main__":
     # Testing correlation between hairpin count and guide activity.
     getCorrelationHairpin()
 
-    # Testing correlation between Melting temperature and guide activity.
+    # Testing correlation between melting temperature and guide activity.
     tempCorr = getCorrelationMeltingTemperature(d)
 
     # Getting the essential genes.
     essential = getEssentialGenes(d)
 
     # Printing the 10 most essential genes.
-    print "essential genes\n", [i[:] for i in essential[:10]]
+    print "Top 10 Essential genes."
+    for i in essential[:10]: print i
 
     # Creating the feature matrix.
     matrix = createMatrixForClustering(d)
@@ -406,7 +409,7 @@ if __name__ == "__main__":
     # Performing dimensionality reduction via PCA for visualisation.
     coordinates = reduceDimensionalityToTwo(normalisedMatrix)
 
-    # Plotting the output of PCA.
+    # Plotting the output of PCA and coloring according to the magnitude of guide activities.
     figName = "pcaOutput.png"
     createPlot(coordinates, ratios, figName, "pc1", "pc2")
 
@@ -418,6 +421,7 @@ if __name__ == "__main__":
     figName = "guideActivitiesForEachCluster.png"
     coordinates = []
     plotRatios = np.array([])
+    print "Average guide activity for each cluster"
     for clusterNumber in range(numberOfClusters):
         coo = km == clusterNumber
         averageRatio = np.average(ratios[coo])

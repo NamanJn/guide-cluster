@@ -123,6 +123,7 @@ if __name__ == "__main__":
     # Creating the dimer counts file.
     print 'creating dimer counts file'
     dimerCounts = createFiles.createDimerCountsFile()
+    print 'done'
 
     # Creating the checkfile.
     os.system("touch %s" % readData.runInitialFileName)
