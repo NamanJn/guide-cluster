@@ -255,12 +255,33 @@ def clusterData(matrix, numOfClusters):
     """
 
     :param matrix (NumPy array) - The feature-scaled data matrix.
-    :param numOfClusters (int) - The number of clusters
+    :param numOfClusters (int) - The number of clusters.
     :return: labels (NumPy array) - The group number for each sample.
     """
     kmeans = KMeans(n_clusters=numOfClusters)
     labels = kmeans.fit(matrix).labels_
     return labels
+
+
+def plotRegression(x, ratios, xLabel, yLabel, fileName):
+    """
+    This function is to plot a scatter plot for features vs guide activity.
+    
+    :param x - The feature.
+    :param ratios - The guide activity values.
+    :param xLabel (string) - The x label of the plot.
+    :param yLabel (string) - The y label of the plot.
+    :param fileName (string) - The file name.
+    :return: Pearson correlation test results (tuple).
+    """
+    sns.regplot(x, ratios)
+
+    sns.plt.xlabel(xLabel)
+    sns.plt.ylabel(yLabel)
+    sns.plt.savefig(fileName)
+    sns.plt.clf()
+
+    return pearsonr(x, ratios)
 
 
 def getCorrelationHairpin():
@@ -275,12 +296,7 @@ def getCorrelationHairpin():
     hairpinCounts = np.array(readHairpinCounts()).astype("float64")
 
     # Plotting the scatterplot and regression line.
-    sns.regplot(hairpinCounts, ratios)
-
-    sns.plt.xlabel("Hairpin Count")
-    sns.plt.ylabel("Guide Activity")
-    sns.plt.savefig('hairpinVsGuide.png')
-    sns.plt.clf()
+    return plotRegression(hairpinCounts, ratios, "Hairpin counts", "Guide Activity", "hairpinVsGuide.png" )
 
 
 def getCorrelationMeltingTemperature(d):
@@ -297,13 +313,7 @@ def getCorrelationMeltingTemperature(d):
     meltingTemperatures = np.array([ getMeltingTemperature(oligonucleotide) for oligonucleotide in oligonucleotides ])
 
     # Plotting the scatterplot and regression line.
-    sns.regplot(meltingTemperatures, ratios)
-
-    sns.plt.xlabel("Melting Temperature")
-    sns.plt.ylabel("Guide Activity")
-    sns.plt.savefig('TemperaturesVsGuide.png')
-    sns.plt.clf()
-    return pearsonr(meltingTemperatures, ratios)
+    return plotRegression(meltingTemperatures, ratios, "Melting Temperature", "Guide Activity", "temperaturesVsGuide.png" )
 
 
 def getCorrelationGenomeLocation():
@@ -335,11 +345,7 @@ def getCorrelationGenomeLocation():
     allPositions = np.array(allPositions).astype("float64")
 
     # Plotting the scatterplot and regression line.
-    sns.regplot(allPositions, ratios, fit_reg=False)
-    sns.plt.xlabel("Genome location ( position / chromosome length)")
-    sns.plt.ylabel("Guide activity")
-    sns.plt.savefig('positionVsGuide.png')
-    sns.plt.clf()
+    return plotRegression(allPositions, ratios, "Genome location ( position / chromosome length)", "Guide Activity", "positionVsGuide.png" )
 
 def featureScaleMatrix(matrix):
     """
